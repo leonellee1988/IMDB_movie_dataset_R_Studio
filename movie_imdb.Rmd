@@ -1,0 +1,373 @@
+---
+title: "movie_imdb"
+author: "Edwin Lee"
+date: "2023-09-20"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 1
+    toc_float: true
+    collapsed: true
+    smooth_scroll: true
+    theme: journal
+    highlight: kate
+    df_print: paged
+    code_folding: hide
+---
+
+```{r load_libraries, include = FALSE}
+
+library(tidyverse)
+library(ggplot2)
+library(skimr)
+library(dplyr)
+
+```
+
+```{r read_file, include = FALSE}
+
+tibble_movies = read_csv('movies_data.csv')
+
+```
+
+# (1) Display top 10 rows of the dataset.
+
+```{r}
+
+head(tibble_movies, 10)
+
+```
+
+# (2) Display last 10 rows in the dataset.
+
+```{r}
+
+tail(tibble_movies, 10)
+
+```
+
+# (3) Find shape of dataset (number of rows and columns).
+
+```{r}
+
+cat('The number of rows in the dataset is: ', nrow(tibble_movies), '\n')
+cat('The number of columns in the dataset is: ', ncol(tibble_movies))
+
+```
+
+# (4) Get information about the dataset.
+
+```{r}
+
+glimpse(tibble_movies)
+
+```
+
+# (5) Check missing values in the dataset.
+
+```{r}
+
+#skim_without_charts(tibble_movies)
+revenue_na = sum(is.na(tibble_movies$`Revenue (Millions)`))
+metascore_na = sum(is.na(tibble_movies$Metascore))
+cat('The number of missing values for Revenue column is: ', revenue_na, '\n')
+cat('The number of missing values for Metascore column is: ', metascore_na)
+
+```
+
+# (6) Drop all missing values.
+
+```{r}
+
+tibble_movies_2 = tibble_movies %>% 
+  drop_na()
+
+revenue_na_2 = sum(is.na(tibble_movies_2$`Revenue (Millions)`))
+metascore_na_2 = sum(is.na(tibble_movies_2$Metascore))
+cat('The number of missing values for Revenue column is: ', revenue_na_2, '\n')
+cat('The number of missing values for Metascore column is: ', metascore_na_2)
+
+```
+
+# (7) Check for duplicate data.
+
+```{r}
+
+duplicated_data = tibble_movies_2 %>% 
+  filter(duplicated(.))
+
+duplicated_data
+
+```
+
+# (8) Get overall statistics about dataset.
+
+```{r}
+
+summary(tibble_movies_2)
+
+```
+
+# (9) Title of the movies having runtime over than 180 minutes.
+
+```{r}
+
+movies_over_180 = tibble_movies_2 %>% 
+  filter(`Runtime (Minutes)` >= 180) %>% 
+  select(Title, `Runtime (Minutes)`)
+
+movies_over_180
+
+```
+
+# (10) In which year there was the highest average voting?
+
+```{r}
+
+votes_per_year_list = tibble_movies_2 %>% 
+  group_by(Year) %>% 
+  summarize(mean_votes_per_year = mean(Votes)) %>% 
+  arrange(-mean_votes_per_year)
+
+votes_per_year_list
+
+```
+
+```{r}
+
+votes_per_year_list$Year = factor(votes_per_year_list$Year)
+
+ggplot(data=votes_per_year_list, aes(x = Year, y = mean_votes_per_year, fill = Year)) +
+  geom_col() + 
+  labs(title = 'Average votes per year.', x = 'Year', y = 'Votes') +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  scale_y_continuous(labels = scales::comma) + 
+  guides(fill = FALSE)
+
+```
+
+# (11) In which year there was the highest average revenue?
+
+```{r}
+
+revenue_per_year_list = tibble_movies_2 %>% 
+  group_by(Year) %>% 
+  summarize(average_revenue_per_year = mean(`Revenue (Millions)`)) %>% 
+  arrange(-average_revenue_per_year)
+
+revenue_per_year_list
+
+```
+
+```{r}
+
+revenue_per_year_list$Year = factor(revenue_per_year_list$Year)
+
+ggplot(data=revenue_per_year_list, aes(x = Year, y = average_revenue_per_year, fill = Year)) +
+  geom_col() + 
+  labs(title = 'Average revenue per year.', x = 'Year', y = 'Revenue') +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  scale_y_continuous(labels = scales::comma) +
+  guides(fill = FALSE)
+
+```
+
+# (12) Find the average rating for each director.
+
+```{r}
+
+average_rating_director = tibble_movies_2 %>% 
+  group_by(Director) %>% 
+  summarize(average_rating = mean(Rating)) %>% 
+  arrange(-average_rating)
+
+average_rating_director
+
+```
+
+# (13) Display top 10 lengthy movies title and runtime.
+
+```{r}
+
+lengthy_movies_list = tibble_movies_2 %>%
+  select(Title, `Runtime (Minutes)`) %>% 
+  arrange(-`Runtime (Minutes)`) %>% 
+  head(10)
+
+lengthy_movies_list
+
+```
+
+```{r}
+
+ggplot(data=lengthy_movies_list, aes(x = `Runtime (Minutes)`, y = Title, fill = Title)) + 
+  geom_col() + 
+  labs(title = 'Top 10 longest runtime movies.', x = 'Minutes', y = 'Title movie') + 
+  guides(fill = FALSE)
+
+```
+
+# (14) Display number of movies per year.
+
+```{r}
+
+movies_per_year = tibble_movies_2 %>% 
+  group_by(Year) %>% 
+  summarize(counter = n()) %>% 
+  arrange(-counter)
+  
+movies_per_year
+
+```
+
+# (15) Find the most popular movie title (highest revenue).
+
+```{r}
+
+most_popular_movie = tibble_movies_2 %>% 
+  filter(`Revenue (Millions)` == max(`Revenue (Millions)`)) %>% 
+  select(Title, `Revenue (Millions)`)
+  
+most_popular_movie
+
+```
+
+# (16) Find the least movie title (lowest revenue).
+
+```{r}
+
+most_unpopular_movie = tibble_movies_2 %>% 
+  filter(`Revenue (Millions)` == min(`Revenue (Millions)`)) %>% 
+  select(Title, `Revenue (Millions)`)
+
+most_unpopular_movie
+
+```
+
+# (17) Display de 10 highest rated movie titles and directors.
+
+```{r}
+
+highest_rated_movies = tibble_movies_2 %>% 
+  arrange(-Rating) %>% 
+  select(Title, Director, Rating) %>% 
+  head(10)
+
+highest_rated_movies
+
+```
+
+```{r}
+
+ggplot(data=highest_rated_movies, aes(x = Title, y = Rating, fill = Director)) + 
+  geom_col() + 
+  labs(title = 'Top 10 highest rated movies.', x = 'Title', y = 'Rating') + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+
+# (18) Display top 10 highest revenue movie titles.
+
+```{r}
+
+highest_revenue_movies = tibble_movies_2 %>% 
+  arrange(-`Revenue (Millions)`) %>% 
+  select(Title, `Revenue (Millions)`) %>% 
+  head(10)
+
+highest_revenue_movies
+
+```
+
+```{r}
+
+ggplot(data=highest_revenue_movies, aes(x = `Revenue (Millions)`, y = Title, fill = Title)) + 
+  geom_col() + 
+  labs(title = 'Top 10 highest revenue movies.', x = 'Revenue', y = 'Title') + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  guides(fill = FALSE)
+
+```
+
+# (19) Find average rating of movies per year.
+
+```{r}
+
+average_rating_per_year = tibble_movies_2 %>% 
+  group_by(Year) %>% 
+  summarize(average_rating = mean(Rating)) %>% 
+  arrange(-average_rating)
+
+average_rating_per_year
+
+```
+
+```{r}
+
+average_rating_per_year$Year = factor(average_rating_per_year$Year)
+
+ggplot(data=average_rating_per_year, aes(x = Year, y = average_rating, fill = Year)) + 
+  geom_col() + 
+  labs(title = 'Average rating of movies per year.', x = 'Year', y = 'Average rating') + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  guides(fill = FALSE)
+
+```
+
+# (20) Does rating affect the revenue?
+
+```{r}
+
+ggplot(data=tibble_movies_2, aes(x = Rating, y = `Revenue (Millions)`))+
+  geom_point() +
+  labs(x = 'Rating', y = 'Revenue') + 
+  ggtitle('Scatterplot Rating vs Revenue') +
+  theme_bw()
+
+```
+
+# (21) Classify movies based on ratings (excellent, good and average).
+
+```{r}
+
+tibble_movies_2 = tibble_movies_2 %>% 
+  mutate(Category = case_when(
+  Rating >= 7 ~ 'Excellent',
+  Rating >= 6 ~ 'Good',
+  TRUE ~ 'Average'
+))
+
+tibble_movies_2
+
+```
+
+# (22) Count number of action movies.
+
+```{r}
+
+action_movies = tibble_movies_2 %>% 
+  filter(str_detect(Genre, 'Action')) %>% 
+  nrow()
+
+cat('The number of action movies is: ', action_movies)
+
+```
+
+# (23) Find unique values from genre.
+
+```{r}
+
+genres = tibble_movies_2 %>% 
+  separate_rows(Genre, sep = ',') %>% 
+  distinct(Genre)
+
+genres
+
+```
+
+
+
+
+
+
